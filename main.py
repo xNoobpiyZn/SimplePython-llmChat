@@ -3,9 +3,7 @@ from tools import (Model_AvailableTools, Model_AvailableTools_Func)
 import json
 
 Model_API = OpenAI(base_url="http://localhost:18000/v1", api_key="Localhost")
-Model_MemoryShort = [
-    {"role":"system", "content":"you are helpful lazy assistant"}
-]
+Model_Memory = [[{"role":"system", "content":"you are helpful lazy assistant"}]]
 
 while True:
     # get user input
@@ -15,15 +13,26 @@ while True:
     # user special command ( skip talk to model )
     if User_input == "/exit":
         break
+    elif User_input == "/system":
+        print("leave empty to cancel")
+        User_input = input("(System) >> ")
+        if User_input != "": 
+            Model_Memory[0][0]["content"] = User_input; print("System changed")
+    elif User_input == "/clear":
+        while len(Model_Memory) > 1: Model_Memory.pop(1); print("Memory Cleared")
     else:
-        Model_MemoryShort.append({"role":"user", "content":User_input})
-        User_talkToModel = True
+        Model_Memory.append([])
+        Model_Memory[-1].append({"role":"user", "content":User_input})
+        User_talkToModel = True 
 
     # model stuff
     while User_talkToModel == True:
+        Model_Memory_flat = []
+        for memo in Model_Memory: Model_Memory_flat.extend(memo)
+
         response = Model_API.chat.completions.create(
             model="localhost",
-            messages=Model_MemoryShort, tools=Model_AvailableTools,
+            messages=Model_Memory_flat, tools=Model_AvailableTools,
             stream=True, tool_choice="auto"
         )
         
@@ -71,17 +80,20 @@ while True:
             if Model_output_print != "":
                 print(Model_output_print, end="", flush=True)
 
-        print("\n", end="");
+        print("\n", end="")
 
         # save for next convo
-        Model_MemoryShort.append({"role":"assistant", "content":Model_output[0], "tool_calls":Model_output[2]})
+        Model_Memory[-1].append({"role":"assistant", "content":Model_output[0], "tool_calls":Model_output[2]})
 
         for tool in Model_output[2]:
             func_arg = json.loads(tool["function"]["arguments"])
             func_result = Model_AvailableTools_Func[tool["function"]["name"]](**func_arg)
-            Model_MemoryShort.append({"role":"tool", "tool_call_id":tool["id"], "content":func_result})
+            Model_Memory[-1].append({"role":"tool", "tool_call_id":tool["id"], "content":func_result})
 
-        ## auto delete history is deleted ( for now ) so max context is the only one can stop it :V
+        if len(Model_Memory) > 10: # delete the oldest chat to free context
+            Model_Memory.pop(1)
+        
+        #for i in Model_Memory: print(f"{i}\n") # debug
 
         if len(Model_output[2]) == 0: ## if there is tool call then keep continue
             break 

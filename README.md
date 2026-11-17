@@ -1,3 +1,3 @@
-Simple and NOT clean way to do local model tool calls ( if it works it works tho ¯\\_(ツ)_/¯ )
+Simple and NOT clean way to do local model tool calls using openai api ( if it works, it works lol ¯\\\_(ツ)_/¯ )
 
-maybe clean or update some stuff later.
+maybe clean, update, or add some stuff later.
